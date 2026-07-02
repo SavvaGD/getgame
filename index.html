@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GetGame — активация игр</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #0d1117;
+            color: #e6edf3;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            background: #161b22;
+            padding: 40px;
+            border-radius: 16px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 32px;
+            margin-bottom: 8px;
+            color: #58a6ff;
+        }
+
+        .subtitle {
+            color: #8b949e;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        input {
+            flex: 1;
+            padding: 14px 18px;
+            border: 2px solid #30363d;
+            border-radius: 8px;
+            background: #0d1117;
+            color: #e6edf3;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            outline: none;
+            transition: border 0.3s;
+        }
+
+        input:focus {
+            border-color: #58a6ff;
+        }
+
+        button {
+            padding: 14px 24px;
+            background: #238636;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+            white-space: nowrap;
+        }
+
+        button:hover {
+            background: #2ea043;
+        }
+
+        button:disabled {
+            background: #21262d;
+            color: #484f58;
+            cursor: not-allowed;
+        }
+
+        #status {
+            margin-top: 20px;
+            padding: 14px;
+            border-radius: 8px;
+            font-weight: bold;
+            display: none;
+        }
+
+        .success {
+            display: block !important;
+            background: #0d2818;
+            color: #3fb950;
+            border: 1px solid #238636;
+        }
+
+        .success a {
+            color: #58a6ff;
+            text-decoration: none;
+        }
+
+        .success a:hover {
+            text-decoration: underline;
+        }
+
+        .error {
+            display: block !important;
+            background: #28171d;
+            color: #f85149;
+            border: 1px solid #da3633;
+        }
+
+        .info {
+            color: #8b949e;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>🎮 GetGame</h1>
+        <p class="subtitle">Введите код активации игры</p>
+
+        <div class="input-group">
+            <input type="text" id="codeInput" placeholder="например: ABC-123-XYZ" maxlength="50">
+            <button id="activateBtn">Активировать</button>
+        </div>
+
+        <div id="status"></div>
+
+        <p class="info">Код можно найти в письме после покупки</p>
+    </div>
+
+    <script>
+        const input = document.getElementById('codeInput');
+        const button = document.getElementById('activateBtn');
+        const status = document.getElementById('status');
+
+        // Загружаем game_codes.json
+        let codes = {};
+
+        async function loadCodes() {
+            try {
+                const response = await fetch('game_codes.json');
+                if (!response.ok) throw new Error('Файл game_codes.json не найден');
+                codes = await response.json();
+            } catch (error) {
+                showStatus('Ошибка загрузки базы кодов. Попробуйте позже.', 'error');
+                console.error('Ошибка загрузки game_codes.json:', error);
+            }
+        }
+
+        function showStatus(message, type) {
+            status.textContent = message;
+            status.className = type;
+            status.style.display = 'block';
+        }
+
+        function activateCode() {
+            const code = input.value.trim().toUpperCase();
+
+            if (!code) {
+                showStatus('❌ Введите код активации', 'error');
+                return;
+            }
+
+            // Ищем код в базе
+            const gameFile = codes[code];
+
+            if (!gameFile) {
+                showStatus('❌ Ошибка: код не найден. Проверьте правильность ввода.', 'error');
+                return;
+            }
+
+            // Проверяем, существует ли файл игры в папке games
+            fetch(`games/${gameFile}`, { method: 'HEAD' })
+                .then(response => {
+                    if (response.ok) {
+                        // Игра найдена — даём ссылку на скачивание
+                        showStatus(
+                            `✅ Игра найдена! <a href="games/${gameFile}" download>Скачать ${gameFile}</a>`,
+                            'success'
+                        );
+                    } else {
+                        showStatus('❌ Ошибка: игра в папке games не найдена. Обратитесь в поддержку.', 'error');
+                    }
+                })
+                .catch(() => {
+                    showStatus('❌ Ошибка: игра в папке games не найдена. Обратитесь в поддержку.', 'error');
+                });
+        }
+
+        // Обработчики событий
+        button.addEventListener('click', activateCode);
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                activateCode();
+            }
+        });
+
+        // Загружаем коды при старте
+        loadCodes();
+
+        // Автофокус на поле ввода
+        input.focus();
+    </script>
+
+</body>
+</html>
